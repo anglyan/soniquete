@@ -7,9 +7,9 @@ import tempfile
 
 import numpy as np
 
-from .config import _DEFAULT_SAMPLE_RATE, _DEFAULT_WINDOW_RISE_TIME
+from .wav import _DEFAULT_SAMPLE_RATE
 from .player import play_wav
-from .shapes import WindowEnvelope
+from .shapes import FadeEnvelope,  _DEFAULT_WINDOW_RISE_TIME
 from .wav import read_wav, write_wav
 
 
@@ -121,15 +121,15 @@ class Block:
         in/out envelope — 0 -> 1 over ``rise_time`` seconds at the start,
         and 1 -> 0 over ``rise_time`` seconds at the end — chosen because it
         is smooth (zero slope at both ends) unlike a linear ramp. The
-        envelope itself is :class:`~soniquete.shapes.WindowEnvelope`.
+        envelope itself is :class:`~soniquete.shapes.FadeEnvelope`.
 
         """
 
         n = len(self._array)
 
         if n > 0:
-            envelope = WindowEnvelope(duration=self.duration, rise_time=self._rise_time)
-            self._array = np.clip(envelope.apply(self._array, self._sample_rate), -1.0, 1.0)
+            envelope = FadeEnvelope(duration=self.duration, rise_time=self._rise_time)
+            self._array = np.clip(envelope(self._array, self._sample_rate), -1.0, 1.0)
         return self
 
 

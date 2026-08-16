@@ -7,7 +7,10 @@ from typing import Callable
 
 import numpy as np
 
-from .config import _DEFAULT_SAMPLE_RATE, _DEFAULT_WINDOW_RISE_TIME
+from .wav import _DEFAULT_SAMPLE_RATE
+
+# short fade for click/pop suppression.
+_DEFAULT_WINDOW_RISE_TIME = 0.01
 
 
 # -- shape evaluation ---------------------------------------------------
@@ -46,8 +49,8 @@ def hamming_envelope(N: int, dt: float, duration: float) -> np.ndarray:
     return 0.54 - 0.46 * np.cos(2 * np.pi * t / duration)
 
 
-def window_envelope(N: int, dt: float, duration: float, rise_time: float) -> np.ndarray:
-    """Return a window envelop that implements cosine rise and fall at both ends"""
+def fade_envelope(N: int, dt: float, duration: float, rise_time: float) -> np.ndarray:
+    """Return a fade envelope that implements cosine rise and fall at both ends"""
     t = dt * np.arange(N)
     rise_time = min(rise_time, duration / 2)
     envelope = np.ones_like(t)
@@ -80,12 +83,12 @@ class Envelope:
     modulated intensity value computed from its position in time. In that
     sense, the click-suppressing raised-cosine ramp used by
     :meth:`~soniquete.core.Block.window` is itself a kind of envelope (see
-    :class:`WindowEnvelope`).
+    :class:`FadeEnvelope`).
 
     This is an abstract base — instantiate one of its subclasses directly
     (:class:`GaussianEnvelope`, :class:`ExponentialEnvelope`,
     :class:`SineModulatedEnvelope`, :class:`HammingEnvelope`,
-    :class:`WindowEnvelope`), or, when the shape is only known at runtime
+    :class:`FadeEnvelope`), or, when the shape is only known at runtime
     (e.g. loaded from a JSON string), build one with :func:`parse_envelope`.
 
     ``duration`` (seconds) sets every shape's overall scale; it's the only
@@ -130,7 +133,7 @@ class Envelope:
 
     # -- application ------------------------------------------------------
 
-    def apply(
+    def __call__(
         self, array: np.ndarray, sample_rate: float = _DEFAULT_SAMPLE_RATE
     ) -> np.ndarray:
         """Return ``array`` multiplied by this envelope's intensity curve.
@@ -142,11 +145,6 @@ class Envelope:
         """
         arr = np.asarray(array, dtype=np.float64)
         return arr * self.intensity(len(arr), sample_rate)
-
-    def __call__(
-        self, array: np.ndarray, sample_rate: float = _DEFAULT_SAMPLE_RATE
-    ) -> np.ndarray:
-        return self.apply(array, sample_rate)
 
     # -- serialization ------------------------------------------------------
 
@@ -255,16 +253,12 @@ class HammingEnvelope(Envelope):
         return hamming_envelope(N, dt, self.duration)
 
 
-class WindowEnvelope(Envelope):
-    """The click-suppressing raised-cosine fade in/out.
+class FadeEnvelope(Envelope):
+    """Tclick-suppressing fade in/out.
 
-    Used by :meth:`~soniquete.core.Block.window` — 0 -> 1 over
-    ``rise_time`` seconds at the start, 1 -> 0 over ``rise_time`` seconds
-    at the end, and 1 in between. ``rise_time`` defaults to
-    :data:`~soniquete.config._DEFAULT_WINDOW_RISE_TIME`.
     """
 
-    name = "window"
+    name = "fade"
 
     def __init__(self, duration: float, rise_time: float | None = None) -> None:
         super().__init__(duration)
@@ -275,12 +269,12 @@ class WindowEnvelope(Envelope):
             raise ValueError("rise_time must be non-negative")
 
     def _intensity(self, N: int, dt: float) -> np.ndarray:
-        return window_envelope(N, dt, self.duration, self.rise_time)
+        return fade_envelope(N, dt, self.duration, self.rise_time)
 
     def _params(self) -> dict:
         return {"rise_time": self.rise_time}
 
-    def apply(
+    def __call__(
         self, array: np.ndarray, sample_rate: float = _DEFAULT_SAMPLE_RATE
     ) -> np.ndarray:
         """Return ``array`` multiplied by this envelope's intensity curve.

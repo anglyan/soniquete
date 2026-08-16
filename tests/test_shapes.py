@@ -7,10 +7,10 @@ from soniquete.shapes import (
     CustomEnvelope,
     Envelope,
     ExponentialEnvelope,
+    FadeEnvelope,
     GaussianEnvelope,
     HammingEnvelope,
     SineModulatedEnvelope,
-    WindowEnvelope,
     _ENVELOPE_TYPES,
     parse_envelope,
 )
@@ -149,74 +149,68 @@ def test_hamming_takes_no_extra_params():
     assert env.duration == 2.0
 
 
-# -- apply ----------------------------------------------------------------
+# -- __call__ ---------------------------------------------------------------
 
 
-def test_apply_uses_default_sample_rate_case():
-    from soniquete.config import _DEFAULT_SAMPLE_RATE
+def test_call_uses_default_sample_rate_case():
+    from soniquete import dsr as DSR
 
     env = SineModulatedEnvelope(duration=1.0, frequency=5.0, fraction=0.4)
     arr = np.ones(100)
-    assert np.allclose(env.apply(arr), env.apply(arr, _DEFAULT_SAMPLE_RATE))
+    assert np.allclose(env(arr), env(arr, DSR))
 
 
-def test_apply_multiplies_array_by_intensity():
+def test_call_multiplies_array_by_intensity():
     env = SineModulatedEnvelope(duration=1.0, frequency=5.0, fraction=0.4)
     arr = np.ones(100)
     sample_rate = 100
-    result = env.apply(arr, sample_rate)
+    result = env(arr, sample_rate)
     assert np.allclose(result, env.intensity(len(arr), sample_rate))
 
 
-def test_call_is_alias_for_apply():
-    env = GaussianEnvelope(duration=1.0)
-    arr = np.ones(50)
-    assert np.array_equal(env(arr, 50), env.apply(arr, 50))
-
-
-def test_apply_does_not_mutate_input():
+def test_call_does_not_mutate_input():
     env = GaussianEnvelope(duration=1.0)
     arr = np.ones(10)
     original = arr.copy()
-    env.apply(arr, 10)
+    env(arr, 10)
     assert np.array_equal(arr, original)
 
 
-# -- window ---------------------------------------------------------------
+# -- fade ---------------------------------------------------------------
 
 
-def test_window_default_rise_time_matches_config():
-    from soniquete.config import _DEFAULT_WINDOW_RISE_TIME
+def test_fade_default_rise_time_matches_config():
+    from soniquete.shapes import _DEFAULT_WINDOW_RISE_TIME
 
-    env = WindowEnvelope(duration=1.0)
+    env = FadeEnvelope(duration=1.0)
     assert env.rise_time == _DEFAULT_WINDOW_RISE_TIME
 
 
-def test_window_rejects_negative_rise_time():
+def test_fade_rejects_negative_rise_time():
     with pytest.raises(ValueError):
-        WindowEnvelope(duration=1.0, rise_time=-0.1)
+        FadeEnvelope(duration=1.0, rise_time=-0.1)
 
 
-def test_window_ramps_edges_to_zero_and_one_in_middle():
-    env = WindowEnvelope(duration=1.0, rise_time=0.1)
+def test_fade_ramps_edges_to_zero_and_one_in_middle():
+    env = FadeEnvelope(duration=1.0, rise_time=0.1)
     arr = np.ones(100)
-    result = env.apply(arr, sample_rate=100)
+    result = env(arr, sample_rate=100)
     assert result[0] == pytest.approx(0.0)
     assert result[-1] == pytest.approx(0.0)
     assert result[50] == pytest.approx(1.0)
 
 
-def test_window_rise_time_clamped_to_half_the_array():
+def test_fade_rise_time_clamped_to_half_the_array():
     # rise_time far exceeds the array's length: the ramp should still meet
     # cleanly in the middle rather than overshoot past it.
-    env = WindowEnvelope(duration=1.0, rise_time=10.0)
+    env = FadeEnvelope(duration=1.0, rise_time=10.0)
     arr = np.ones(10)
-    result = env.apply(arr, sample_rate=10)
+    result = env(arr, sample_rate=10)
     assert len(result) == 10
     assert np.all(result >= 0)
 
 
-def test_window_matches_original_block_algorithm():
+def test_fade_matches_original_block_algorithm():
     # Bit-for-bit equivalence with the raised-cosine ramp Block.window()
     # used to compute inline before it was factored out into Envelope.
     n, sample_rate, rise_time = 1000, 44100, 0.01
@@ -226,8 +220,8 @@ def test_window_matches_original_block_algorithm():
     expected[:rise_samples] = ramp
     expected[n - rise_samples:] = ramp[::-1]
 
-    env = WindowEnvelope(duration=n / sample_rate, rise_time=rise_time)
-    result = env.apply(np.ones(n), sample_rate)
+    env = FadeEnvelope(duration=n / sample_rate, rise_time=rise_time)
+    result = env(np.ones(n), sample_rate)
     assert np.array_equal(result, expected)
 
 
@@ -251,10 +245,10 @@ def test_custom_rejects_func_returning_wrong_shape():
         env.intensity(5, sample_rate=10)
 
 
-def test_custom_apply_multiplies_array_by_func_output():
+def test_custom_call_multiplies_array_by_func_output():
     env = CustomEnvelope(duration=1.0, func=lambda t: np.full_like(t, 0.5))
     arr = np.ones(10)
-    assert np.allclose(env.apply(arr, sample_rate=10), 0.5)
+    assert np.allclose(env(arr, sample_rate=10), 0.5)
 
 
 def test_custom_has_no_name_and_is_not_registered():
@@ -293,7 +287,7 @@ def test_parse_envelope_cannot_build_a_custom_envelope():
         ExponentialEnvelope(duration=1.0, decay_time=0.3),
         SineModulatedEnvelope(duration=1.0, frequency=3.0, fraction=0.25),
         HammingEnvelope(duration=0.6),
-        WindowEnvelope(duration=1.0, rise_time=0.02),
+        FadeEnvelope(duration=1.0, rise_time=0.02),
     ],
 )
 def test_parse_envelope_round_trips_to_json(env):
@@ -301,7 +295,7 @@ def test_parse_envelope_round_trips_to_json(env):
     assert type(rebuilt) is type(env)
     assert rebuilt.to_dict() == env.to_dict()
     arr = np.ones(50)
-    assert np.array_equal(rebuilt.apply(arr, 50), env.apply(arr, 50))
+    assert np.array_equal(rebuilt(arr, 50), env(arr, 50))
 
 
 def test_parse_envelope_is_case_insensitive():

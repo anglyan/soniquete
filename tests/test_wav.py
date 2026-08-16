@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from soniquete.config import _PCM_MAX
+from soniquete.wav import _PCM_MAX
 from soniquete.wav import read_wav, write_wav
 
 

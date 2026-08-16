@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 
 from soniquete.block import Block, load_wav, normalize_array
-from soniquete.config import _DEFAULT_SAMPLE_RATE
+from soniquete import dsr as DSR
 
 # -- normalize_array ----------------------------------------------------------
 
@@ -51,7 +51,7 @@ def test_normalize_array_returns_float64():
 def test_block_defaults_to_empty_array_and_default_sample_rate():
     block = Block()
     assert len(block) == 0
-    assert block.sample_rate == _DEFAULT_SAMPLE_RATE
+    assert block.sample_rate == DSR
 
 
 def test_block_from_duration_is_zero_filled_with_expected_length():
@@ -106,7 +106,7 @@ def test_duration_is_samples_over_sample_rate():
 
 
 def test_taper_rise_time_defaults_from_config():
-    from soniquete.config import _DEFAULT_WINDOW_RISE_TIME
+    from soniquete.shapes import _DEFAULT_WINDOW_RISE_TIME
 
     block = Block()
     assert block.taper_rise_time == _DEFAULT_WINDOW_RISE_TIME

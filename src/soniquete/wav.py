@@ -6,8 +6,12 @@ import wave
 
 import numpy as np
 
-from .config import _PCM_MAX, _PCM_MIN
+# 44.1 kHz, 16-bit PCM: "CD-quality" sample rate  universally
+# supported by the WAV format:
 
+_DEFAULT_SAMPLE_RATE = 44100
+_PCM_MAX = 32767
+_PCM_MIN = -32768
 
 def write_wav(
     path: str, array: np.ndarray, sample_rate: int, normalize: bool = True
