@@ -5,10 +5,10 @@ import matplotlib.pyplot as pt
 
 f = sq.Frequency('C2')
 
-t = np.arange(0, 0.5, 1.0/sq.dsr)
+t = np.arange(0, 0.5, sq.DDT)
 sound = np.sin(2 * np.pi * f.hz * t)
 
-block = sq.Block(sound, sample_rate=sq.dsr)
+block = sq.Block(sound, sample_rate=sq.DSR)
 
 print("Playing block...")
 block.play()

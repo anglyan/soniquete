@@ -9,7 +9,6 @@ from soniquete.shapes import (
     ExponentialEnvelope,
     FadeEnvelope,
     GaussianEnvelope,
-    HammingEnvelope,
     SineModulatedEnvelope,
     _ENVELOPE_TYPES,
     parse_envelope,
@@ -117,43 +116,11 @@ def test_sine_modulated_default_frequency_gives_five_cycles():
     assert env.frequency == pytest.approx(2.5)  # 5 cycles over 2 seconds
 
 
-# -- hamming --------------------------------------------------------------
-
-
-def test_hamming_peaks_at_center_with_intensity_one():
-    env = HammingEnvelope(duration=0.6)
-    assert env.intensity(4, sample_rate=10)[-1] == pytest.approx(1.0)  # t=0.3
-
-
-def test_hamming_edges_bottom_out_at_0_08():
-    env = HammingEnvelope(duration=1.0)
-    edges = env.intensity(11, sample_rate=10)[[0, -1]]  # t=0.0, 1.0
-    assert edges == pytest.approx([0.08, 0.08])
-
-
-def test_hamming_symmetric_around_center():
-    env = HammingEnvelope(duration=1.0)
-    values = env.intensity(9, sample_rate=10)  # t=0.0 .. 0.8
-    left, right = values[2], values[8]  # t=0.2, 0.8
-    assert left == pytest.approx(right)
-
-
-def test_hamming_never_reaches_zero():
-    env = HammingEnvelope(duration=1.0)
-    values = _linspace_intensity(env, 10000, 1.0)
-    assert values.min() > 0
-
-
-def test_hamming_takes_no_extra_params():
-    env = HammingEnvelope(duration=2.0)
-    assert env.duration == 2.0
-
-
 # -- __call__ ---------------------------------------------------------------
 
 
 def test_call_uses_default_sample_rate_case():
-    from soniquete import dsr as DSR
+    from soniquete import DSR
 
     env = SineModulatedEnvelope(duration=1.0, frequency=5.0, fraction=0.4)
     arr = np.ones(100)
@@ -286,7 +253,6 @@ def test_parse_envelope_cannot_build_a_custom_envelope():
         GaussianEnvelope(duration=0.6),
         ExponentialEnvelope(duration=1.0, decay_time=0.3),
         SineModulatedEnvelope(duration=1.0, frequency=3.0, fraction=0.25),
-        HammingEnvelope(duration=0.6),
         FadeEnvelope(duration=1.0, rise_time=0.02),
     ],
 )

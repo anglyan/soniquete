@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 
 from soniquete.block import Block, load_wav, normalize_array
-from soniquete import dsr as DSR
+from soniquete import DSR
 
 # -- normalize_array ----------------------------------------------------------
 

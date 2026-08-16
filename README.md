@@ -22,3 +22,6 @@ print("Playing block...")
 block.play()
 
 ```
+
+We can avoid having to create the waveforms manually using the class `Waveform`
+

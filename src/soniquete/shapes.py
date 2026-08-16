@@ -43,12 +43,6 @@ def sine_modulated_envelope(
     return (1 - half) + half * np.cos(2 * np.pi * frequency * t)
 
 
-def hamming_envelope(N: int, dt: float, duration: float) -> np.ndarray:
-    """Return a hamming envelope"""
-    t = dt * np.arange(N)
-    return 0.54 - 0.46 * np.cos(2 * np.pi * t / duration)
-
-
 def fade_envelope(N: int, dt: float, duration: float, rise_time: float) -> np.ndarray:
     """Return a fade envelope that implements cosine rise and fall at both ends"""
     t = dt * np.arange(N)
@@ -236,21 +230,6 @@ class SineModulatedEnvelope(Envelope):
 
     def _params(self) -> dict:
         return {"frequency": self.frequency, "fraction": self.fraction}
-
-
-class HammingEnvelope(Envelope):
-    """The classic Hamming window: a raised cosine centered on the pulse.
-
-    It peaks at 1 but — unlike :class:`GaussianEnvelope` — never quite
-    reaches 0 at the edges (it bottoms out at 0.08), which is what gives
-    the Hamming window its particularly low nearest side lobe. Takes no
-    parameters beyond ``duration``.
-    """
-
-    name = "hamming"
-
-    def _intensity(self, N: int, dt: float) -> np.ndarray:
-        return hamming_envelope(N, dt, self.duration)
 
 
 class FadeEnvelope(Envelope):
