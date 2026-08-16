@@ -81,12 +81,12 @@ def test_block_from_array_sets_sample_rate():
 
 
 def test_block_from_array_normalizes_by_default():
-    block = Block(np.array([2.0, -4.0]))
+    block = Block(np.array([2.0, -4.0]), rise_time=0)
     assert block.array == pytest.approx([0.5, -1.0])
 
 
 def test_block_from_array_clips_when_normalize_is_false():
-    block = Block(np.array([2.0, -2.0]), normalize=False)
+    block = Block(np.array([2.0, -2.0]), normalize=False, rise_time=0)
     assert block.array == pytest.approx([1.0, -1.0])
 
 
@@ -134,7 +134,7 @@ def test_repr_includes_samples_rate_and_duration():
 
 
 def test_set_volume_rescales_peak_amplitude():
-    block = Block(np.array([0.5, -0.25]), normalize=False)
+    block = Block(np.array([0.5, -0.25]), normalize=False, rise_time=0)
     block.set_volume(0.5)
     assert float(np.max(np.abs(block.array))) == pytest.approx(0.5)
 
@@ -292,10 +292,10 @@ def test_from_wav_overwrites_existing_block_contents(tmp_path):
     assert len(block) == 3
 
 
-# -- listen ----------------------------------------------------------
+# -- play ----------------------------------------------------------
 
 
-def test_listen_writes_a_temp_wav_and_plays_it_then_cleans_up(monkeypatch):
+def test_play_writes_a_temp_wav_and_plays_it_then_cleans_up(monkeypatch):
     played_paths = []
 
     def fake_play_wav(path):
@@ -305,7 +305,7 @@ def test_listen_writes_a_temp_wav_and_plays_it_then_cleans_up(monkeypatch):
     monkeypatch.setattr("soniquete.block.play_wav", fake_play_wav)
 
     block = Block(np.array([0.1, 0.2]), sample_rate=100, normalize=False)
-    block.listen()
+    block.play()
 
     assert len(played_paths) == 1
     assert not os.path.exists(played_paths[0])

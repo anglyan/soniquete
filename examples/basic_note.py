@@ -1,15 +1,7 @@
-# soniquete
-
-## About
-
-Soniquete is a simple module to generate, mix, and reproduce waveforms.
-
-## Example
-
-```python
-
 import soniquete as sq
+
 import numpy as np
+import matplotlib.pyplot as pt
 
 f = sq.Frequency('C2')
 
@@ -20,5 +12,9 @@ block = sq.Block(sound, sample_rate=sq.dsr)
 
 print("Playing block...")
 block.play()
+print("Comparing block to array...")
 
-```
+pt.plot(t, block.array, label="Block")
+pt.plot(t, 1.5+sound, label="Array + 1.5")
+pt.legend()
+pt.show()

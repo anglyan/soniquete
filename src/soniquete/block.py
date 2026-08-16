@@ -45,6 +45,7 @@ class Block:
         sample_rate: int = _DEFAULT_SAMPLE_RATE,
         duration: float | None = None,
         normalize: bool = True,
+        apply_tapper: bool=True,
         rise_time: float = _DEFAULT_WINDOW_RISE_TIME
     ) -> None:
         if sample_rate <= 0:
@@ -67,6 +68,8 @@ class Block:
                 raise ValueError("cannot set duration when passing an array")
             self._sample_rate = int(sample_rate)
             self._array = normalize_array(array, self._normalize)
+            if self.apply_taper:
+                self.apply_taper()
 
 
     @property
@@ -188,7 +191,7 @@ class Block:
         return self
 
 
-    def listen(self) -> None:
+    def play(self) -> None:
         """Play the soundwave using the operating system's audio output.
 
         Works out of the box on macOS (via ``afplay``); also supports Linux
