@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "soniquete"
+version = "0.1.0"
+description = ""
+readme = "README.md"
+requires-python = ">=3.12"
+license = { text = "BSD-3-Clause" }
+authors = [{ name = "anglyan" }]
+dependencies = ["numpy"]
+
+[project.optional-dependencies]
+dev = ["pytest"]
+docs = ["zensical"]
+examples = ["matplotlib"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
