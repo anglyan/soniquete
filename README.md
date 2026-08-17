@@ -4,7 +4,7 @@
 
 Soniquete is a simple module to generate, mix, and reproduce waveforms.
 
-## Example
+## Examples
 
 ```python
 
@@ -22,6 +22,4 @@ print("Playing block...")
 block.play()
 
 ```
-
-We can avoid having to create the waveforms manually using the class `Waveform`
 

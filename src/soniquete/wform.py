@@ -7,16 +7,55 @@ import numpy as np
 from .wav import _DEFAULT_SAMPLE_RATE
 from .freq import Frequency
 
+
+class Tone:
+    """A single pure tone: a frequency, an amplitude, and a phase.
+
+    ``frequency`` is either a :class:`~soniquete.freq.Frequency` or a plain
+    number, taken to be a frequency in Hz and converted into one.
+    """
+
+    def __init__(
+        self,
+        frequency: "Frequency | str | float | int",
+        amplitude: float = 1.0,
+        phase: float = 0.0,
+    ) -> None:
+        if amplitude <= 0:
+            raise ValueError("amplitude must be positive")
+
+        self._freq = (
+            frequency if isinstance(frequency, Frequency) else Frequency(frequency)
+        )
+        self._amp = amplitude
+        self._phase = phase
+
+    @property
+    def hz(self) -> float:
+        """The frequency of the tone, in Hz."""
+        return self._freq.hz
+
+    @property
+    def amp(self) -> float:
+        """The amplitude of the tone."""
+        return self._amp
+
+    @property
+    def phase(self) -> float:
+        """The phase of the tone, in radians."""
+        return self._phase
+
+
 class Waveform:
-    """A soundwave synthesized from a list of (frequency, amplitude) tones.
+    """A soundwave synthesized from a list of :class:`Tone` objects.
 
     """
 
     def __init__(
         self,
         frequencies: list | None = None,
-        intensity: float = 1.0,
         duration: float = 1.0,
+        intensity: float = 1.0,
         sample_rate: int = _DEFAULT_SAMPLE_RATE,
         envelopes: list | None = None,
     ) -> None:
@@ -26,12 +65,10 @@ class Waveform:
             raise ValueError("duration must be non-negative")
 
         self.frequencies = []
-        for f, amplitude in frequencies or []:
-            if amplitude <= 0:
-                raise ValueError("amplitude must be positive")
-            self.frequencies.append(
-                (f if isinstance(f, Frequency) else Frequency(f), amplitude)
-            )
+        for tone in frequencies or []:
+            if not isinstance(tone, Tone):
+                raise TypeError(f"Expected a Tone, got {tone!r}")
+            self.frequencies.append(tone)
 
         self.intensity = intensity
         self.duration = duration
@@ -49,20 +86,28 @@ class Waveform:
         """The synthesized waveform"""
         return self._wform
 
+    @property
+    def t(self) -> np.array:
+        """Time steps of the waveform"""
+        return self._t
+
     def _build_wform(self) -> np.array:
 
         n_samples = int(round(self.duration * self.sample_rate))
         t = np.arange(n_samples) / self.sample_rate
+        self._t = t
 
         signal = np.zeros(n_samples, dtype=np.float64)
-        for f, amplitude in self.frequencies:
-            signal += amplitude * np.sin(2 * np.pi * f.hz * t)
-
-        total_amplitude = sum(amplitude for _, amplitude in self.frequencies)
-        if total_amplitude > 0:
-            signal = signal / total_amplitude * self.intensity
+        for tone in self.frequencies:
+            signal += tone.amp * np.sin(2 * np.pi * tone.hz * t + tone.phase)
 
         for envelope in self.envelopes:
             signal = envelope(signal, self.sample_rate)
+
+        max_signal = np.max(np.abs(signal))
+        print(max_signal)
+        if max_signal > 0:
+            signal = signal / max_signal * self.intensity
+
         return signal
 
