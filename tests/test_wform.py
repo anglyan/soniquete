@@ -20,7 +20,10 @@ def test_sample_count_matches_duration_and_sample_rate():
 def test_single_tone_matches_sine_wave():
     wf = Waveform(frequencies=[Tone(10, 1.0)], intensity=1.0, duration=1.0, sample_rate=100)
     t = np.arange(100) / 100
-    expected = np.sin(2 * np.pi * 10 * t)
+    raw = np.sin(2 * np.pi * 10 * t)
+    # The sampled peak rarely lands exactly on the sine's true peak, so the
+    # waveform is normalized against its own sampled peak, not the raw sine.
+    expected = raw / np.max(np.abs(raw))
     assert wf._wform == pytest.approx(expected)
 
 
@@ -39,10 +42,27 @@ def test_multiple_tones_are_amplitude_weighted_and_normalized():
         sample_rate=100,
     )
     t = np.arange(100) / 100
-    # Same frequency twice at weights 1 and 3 out of a total of 4 collapses
-    # back to a plain sine at full intensity.
-    expected = np.sin(2 * np.pi * 10 * t)
+    # Same frequency and phase, so the two tones just rescale one another
+    # (weights 1 and 3 add in phase to 4x a plain sine); after normalizing
+    # to the sampled peak, the shape is indistinguishable from a lone tone.
+    raw = np.sin(2 * np.pi * 10 * t)
+    expected = raw / np.max(np.abs(raw))
     assert wf._wform == pytest.approx(expected)
+
+
+def test_destructive_interference_shrinks_the_normalized_peak():
+    # Two equal-amplitude tones at the same frequency but opposite phase
+    # nearly cancel; normalizing by the sum of amplitudes (2.0) would hide
+    # that and leave the array far quieter than its declared intensity.
+    # Normalizing by the actual (much smaller) sampled peak keeps the
+    # waveform at full intensity despite the cancellation.
+    wf = Waveform(
+        frequencies=[Tone(10, 1.0, phase=0.0), Tone(10, 1.0, phase=np.pi - 0.01)],
+        intensity=1.0,
+        duration=1.0,
+        sample_rate=100,
+    )
+    assert np.max(np.abs(wf._wform)) == pytest.approx(1.0)
 
 
 def test_accepts_frequency_instances_and_note_names():

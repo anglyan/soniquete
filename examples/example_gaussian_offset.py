@@ -9,28 +9,26 @@ import numpy as np
 import matplotlib.pyplot as pt
 
 from soniquete import Waveform, Frequency, Tone
-from soniquete.shapes import FadeEnvelope
+from soniquete.shapes import ExponentialEnvelope
 
 import soniquete as sq
 import numpy as np
-DURATION = 2.0
-NFREQ = 100
+DURATION = 4.0
+NFREQ = 50
 
-f0 = Frequency('C4').hz
-sigma = 0.2
-
+sigma = 0.3
 flist = []
 
 for i in range(NFREQ):
 
-    offset = np.random.random()-0.5
-    fi = Frequency('C5', offset=offset)
+    offset = 6*sigma*(np.random.random()-0.5)
+    fi = Frequency('C8', offset=offset)
     ai = np.exp(-(offset/sigma)**2)
     print(fi, ai)
     flist.append(Tone(fi, ai))
 
 w1 = Waveform(flist, duration=DURATION,
-    envelopes=[FadeEnvelope(DURATION)])
+    envelopes=[ExponentialEnvelope(DURATION, decay_time=0.15*DURATION)])
 
 block = sq.Block(w1.array)
 

@@ -104,10 +104,10 @@ class Waveform:
         for envelope in self.envelopes:
             signal = envelope(signal, self.sample_rate)
 
-        max_signal = np.max(np.abs(signal))
-        print(max_signal)
-        if max_signal > 0:
-            signal = signal / max_signal * self.intensity
+        if signal.size > 0:
+            max_signal = np.max(np.abs(signal))
+            if max_signal > 0:
+                signal = signal / max_signal * self.intensity
 
         return signal
 
